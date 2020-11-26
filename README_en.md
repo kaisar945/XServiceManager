@@ -18,9 +18,9 @@ After Android 5.0, it is limited by the impact of the mandatory policy of ```SEL
 
 > Here only introduce the method of xposed integration, the method of aosp integration is similar, please research by yourself.
 
-1. Clone the ```XServiceManager``` project to your project```git clone git@github.com:jrsen/XServiceManager.git```
+1. Clone the ```XServiceManager``` project to your project```git clone https://github.com/jrsen/XServiceManager.git libxservicemanager ```
 
-2. Open ```build.gradle``` in your project and add ```implementation project(path:':xservicemanager')```
+2. Open ```build.gradle``` in your project and add ```implementation project(path: ':libxservicemanager')```
 
 3. Write your ```AIDL``` service
 

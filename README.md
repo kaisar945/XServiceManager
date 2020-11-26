@@ -18,9 +18,9 @@
 
 > 这里仅介绍```xposed```集成的方法```aosp```集成的方法类似请自行研究
 
-1. 将```XServiceManager```项目克隆至您的工程```git clone git@github.com:jrsen/XServiceManager.git```
+1. 将```XServiceManager```项目克隆至您的工程```git clone https://github.com/jrsen/XServiceManager.git libxservicemanager ```
 
-2. 在您的工程中打开```build.gradle```中添加```implementation project(path: ':xservicemanager')```
+2. 在您的工程中打开```build.gradle```中添加```implementation project(path: ':libxservicemanager')```
 
 3. 编写您的```AIDL```服务
 
