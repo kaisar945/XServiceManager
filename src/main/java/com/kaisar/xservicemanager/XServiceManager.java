@@ -18,7 +18,6 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
 import java.lang.reflect.Field;
-import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
@@ -32,8 +31,8 @@ public final class XServiceManager
 
     private static final String TAG = "XServiceManager";
     private static final String DELEGATE_SERVICE = "clipboard";
-    private static final Map<String, ServiceFetcher<? extends Binder>> SERVICE_FETCHERS = new ArrayMap<String, ServiceFetcher<? extends Binder>>();
-    private static final HashMap<String, IBinder> sCache = new HashMap<String, IBinder>();
+    private static final Map<String, ServiceFetcher<? extends Binder>> SERVICE_FETCHERS = new ArrayMap<>();
+    private static final HashMap<String, IBinder> sCache = new HashMap<>();
 
     private static final String DESCRIPTOR = XServiceManager.class.getName();
     private static final int TRANSACTION_getService = IBinder.LAST_CALL_TRANSACTION;
@@ -58,41 +57,36 @@ public final class XServiceManager
             @SuppressLint("DiscouragedPrivateApi") Method getIServiceManagerMethod = ServiceManagerClass.getDeclaredMethod("getIServiceManager");
             getIServiceManagerMethod.setAccessible(true);
             final Object serviceManager = getIServiceManagerMethod.invoke(null);
-            Field sServiceManagerField = ServiceManagerClass.getDeclaredField("sServiceManager");
+            @SuppressLint("DiscouragedPrivateApi") Field sServiceManagerField = ServiceManagerClass.getDeclaredField("sServiceManager");
             sServiceManagerField.setAccessible(true);
             Class<?> IServiceManagerClass = sServiceManagerField.getType();
-            Object serviceManagerDelegate = Proxy.newProxyInstance(IServiceManagerClass.getClassLoader(), new Class[]{IServiceManagerClass}, new InvocationHandler()
-            {
-                @Override
-                public Object invoke(Object proxy, Method method, Object[] args) throws Throwable
+            Object serviceManagerDelegate = Proxy.newProxyInstance(IServiceManagerClass.getClassLoader(), new Class[]{IServiceManagerClass}, (proxy, method, args) -> {
+                final String methodName = method.getName();
+                if("addService".equals(methodName) && DELEGATE_SERVICE.equals(args[0]))
                 {
-                    final String methodName = method.getName();
-                    if("addService".equals(methodName) && DELEGATE_SERVICE.equals(args[0]))
+                    IBinder clipboardService = (IBinder)args[1];
+                    IBinder xServiceManagerService = new XServiceManagerService();
+                    args[1] = new BinderDelegateService(clipboardService, xServiceManagerService);
+                    @SuppressLint("PrivateApi") Class<?> ActivityThreadClass = Class.forName("android.app.ActivityThread");
+                    Method currentActivityThread = ActivityThreadClass.getMethod("currentActivityThread");
+                    Method getSystemContext = ActivityThreadClass.getMethod("getSystemContext");
+                    Context systemContext = (Context)getSystemContext.invoke(currentActivityThread.invoke(null));
+                    for(Map.Entry<String, ServiceFetcher<?>> serviceFetcherEntry : SERVICE_FETCHERS.entrySet())
                     {
-                        IBinder clipboardService = (IBinder)args[1];
-                        IBinder xServiceManagerService = new XServiceManagerService();
-                        args[1] = new BinderDelegateService(clipboardService, xServiceManagerService);
-                        @SuppressLint("PrivateApi") Class<?> ActivityThreadClass = Class.forName("android.app.ActivityThread");
-                        Method currentActivityThread = ActivityThreadClass.getMethod("currentActivityThread");
-                        Method getSystemContext = ActivityThreadClass.getMethod("getSystemContext");
-                        Context systemContext = (Context)getSystemContext.invoke(currentActivityThread.invoke(null));
-                        for(Map.Entry<String, ServiceFetcher<?>> serviceFetcherEntry : SERVICE_FETCHERS.entrySet())
+                        String name = serviceFetcherEntry.getKey();
+                        try
                         {
-                            String name = serviceFetcherEntry.getKey();
-                            try
-                            {
-                                Binder service = serviceFetcherEntry.getValue().createService(systemContext);
-                                addService(name, service);
-                            }
-                            catch(Exception e)
-                            {
-                                if(debug)
-                                    Log.e(TAG, String.format("create %s service fail", name), e);
-                            }
+                            Binder service = serviceFetcherEntry.getValue().createService(systemContext);
+                            addService(name, service);
+                        }
+                        catch(Exception e)
+                        {
+                            if(debug)
+                                Log.e(TAG, String.format("create %s service fail", name), e);
                         }
                     }
-                    return method.invoke(serviceManager, args);
                 }
+                return method.invoke(serviceManager, args);
             });
             sServiceManagerField.set(null, serviceManagerDelegate);
             if(debug) Log.d(TAG, "inject success");
