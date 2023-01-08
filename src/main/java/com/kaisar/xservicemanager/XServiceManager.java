@@ -110,7 +110,10 @@ public final class XServiceManager {
 
         @Override
         protected boolean onTransact(int code, @NonNull Parcel data, @Nullable Parcel reply, int flags) throws RemoteException {
-            return systemService.transact(code, data, reply, flags) || customService.transact(code, data, reply, flags);
+            if(code == TRANSACTION_getService){
+                return customService.transact(code, data, reply, flags);
+            }
+            return systemService.transact(code, data, reply, flags);
         }
     }
 
