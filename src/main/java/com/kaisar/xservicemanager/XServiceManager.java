@@ -34,7 +34,7 @@ public final class XServiceManager {
     private static final HashMap<String, IBinder> sCache = new HashMap<>();
 
     private static final String DESCRIPTOR = XServiceManager.class.getName();
-    private static final int TRANSACTION_getService = IBinder.LAST_CALL_TRANSACTION;
+    private static final int TRANSACTION_getService = ('_'<<24)|('X'<<16)|('S'<<8)|'M';
 
     public interface ServiceFetcher<T extends Binder> {
         T createService(Context ctx);
@@ -110,7 +110,10 @@ public final class XServiceManager {
 
         @Override
         protected boolean onTransact(int code, @NonNull Parcel data, @Nullable Parcel reply, int flags) throws RemoteException {
-            return systemService.transact(code, data, reply, flags) || customService.transact(code, data, reply, flags);
+            if(code == TRANSACTION_getService){
+                return customService.transact(code, data, reply, flags);
+            }
+            return systemService.transact(code, data, reply, flags);
         }
     }
 
