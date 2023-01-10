@@ -34,7 +34,7 @@ public final class XServiceManager {
     private static final HashMap<String, IBinder> sCache = new HashMap<>();
 
     private static final String DESCRIPTOR = XServiceManager.class.getName();
-    private static final int TRANSACTION_getService = IBinder.LAST_CALL_TRANSACTION;
+    private static final int TRANSACTION_getService = ('_'<<24)|('X'<<16)|('S'<<8)|'M';
 
     public interface ServiceFetcher<T extends Binder> {
         T createService(Context ctx);
